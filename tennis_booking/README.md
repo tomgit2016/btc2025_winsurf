@@ -47,13 +47,18 @@ Run the script:
 python src/tennis_booking.py
 ```
 
-### Running in Headless Mode
+### Running in Headless Mode (Config-driven)
 
-To run the script without opening a browser window (headless mode), uncomment these lines in `tennis_booking.py`:
-```python
-# options.add_argument('--headless')
-# options.add_argument('--disable-gpu')
+Set an environment flag in `config/.env` to toggle headless mode without editing code:
+
+```env
+# Run Chrome in headless mode (accepted values: true/false, 1/0, yes/no, on/off)
+HEADLESS=true
 ```
+
+The script reads `HEADLESS` in `TennisCourtBooking._init_driver()` and, when enabled, uses `--headless=new` with a `1920x1080` window size. Set `HEADLESS=false` (or remove it) to run with a visible browser window.
+
+Chrome password save prompts are disabled automatically via driver options.
 
 ## Features
 

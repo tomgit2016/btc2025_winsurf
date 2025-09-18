@@ -153,6 +153,18 @@ class TennisCourtBooking:
         # Further reduce password bubble popups
         options.add_argument('--disable-features=PasswordManagerOnboarding,AutofillServerCommunication,EnableSavePasswordBubble')
         
+        # Config-driven headless mode
+        try:
+            headless_flag = os.getenv('HEADLESS', 'false').strip().lower()
+            if headless_flag in ('1', 'true', 'yes', 'on'):
+                # Use new headless mode for recent Chromes
+                options.add_argument('--headless=new')
+                # Ensure a reasonable viewport in headless
+                options.add_argument('--window-size=1920,1080')
+                logger.info("Running in headless mode (configured via HEADLESS env)")
+        except Exception:
+            pass
+        
         # Set page load strategy to 'none' to prevent hanging on page loads
         options.page_load_strategy = 'none'
         
