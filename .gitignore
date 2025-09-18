@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.build/
+
+# macOS
+.DS_Store
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Logs
+*.log
+tennis_booking/tennis_booking.log
+
+# Selenium/Webdriver cache (local caches may appear outside repo, but just in case)
+.wdm/
+webdriver/
+
+# Local environment configs
+tennis_booking/config/.env
+
+# Debug artifacts
+tennis_booking/debug/
+
+# pytest cache
+.pytest_cache/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
