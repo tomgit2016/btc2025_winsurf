@@ -1,0 +1,76 @@
+name: Tennis Booking Automation
+
+on:
+  schedule:
+    # 9:01 PM Pacific Time occurs at 04:01 UTC during Daylight Saving (PDT)
+    - cron: '1 4 * * 2,5'
+    # 9:01 PM Pacific Standard Time occurs at 05:01 UTC (non-DST)
+    - cron: '1 5 * * 2,5'
+  workflow_dispatch:
+
+jobs:
+  book-court:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Google Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Show Chrome version
+        run: |
+          google-chrome --version || true
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r tennis_booking/requirements.txt
+
+      - name: Create config .env from secrets
+        run: |
+          mkdir -p tennis_booking/config
+          cat > tennis_booking/config/.env << 'EOF'
+          TENNIS_CLUB_URL=${{ secrets.TENNIS_CLUB_URL }}
+          USERNAME=${{ secrets.USERNAME }}
+          PASSWORD=${{ secrets.PASSWORD }}
+
+          PREFERRED_COURTS=${{ secrets.PREFERRED_COURTS }}
+          PREFERRED_TIME=${{ secrets.PREFERRED_TIME }}
+          BOOKING_DAYS_AHEAD=${{ secrets.BOOKING_DAYS_AHEAD }}
+          DURATION_MINUTES=${{ secrets.DURATION_MINUTES }}
+
+          PLAYER1_NAME=${{ secrets.PLAYER1_NAME }}
+          PLAYER2_NAME=${{ secrets.PLAYER2_NAME }}
+          PLAYER3_NAME=${{ secrets.PLAYER3_NAME }}
+
+          # Force headless on CI
+          HEADLESS=true
+          # Optional log level
+          LOG_LEVEL=${{ secrets.LOG_LEVEL }}
+          EOF
+
+      - name: Run booking script (headless)
+        env:
+          # Some sites may require locale/timezone awareness
+          TZ: America/Los_Angeles
+        run: |
+          python tennis_booking/src/tennis_booking.py
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tennis-booking-debug
+          path: |
+            tennis_booking/debug/**/*.png
+            tennis_booking/debug/**/*.html
+            tennis_booking/tennis_booking.log
+          if-no-files-found: ignore

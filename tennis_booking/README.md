@@ -47,6 +47,27 @@ Run the script:
 python src/tennis_booking.py
 ```
 
+### Run Automatically on GitHub Actions
+
+This repository includes a workflow at `.github/workflows/tennis_booking.yml` to run the booking script on a schedule (weekly Monday & Thursday at 9:01 PM Pacific, with both PDT and PST cron entries). You can also run it manually via the workflow_dispatch event.
+
+1. Create the following Repository Secrets in GitHub (Settings → Secrets and variables → Actions → New repository secret):
+   - `TENNIS_CLUB_URL`
+   - `USERNAME`
+   - `PASSWORD`
+   - `PREFERRED_COURTS` (e.g., `3,4,5,2`)
+   - `PREFERRED_TIME` (e.g., `21:00`)
+   - `BOOKING_DAYS_AHEAD` (e.g., `7`)
+   - `DURATION_MINUTES` (e.g., `120`)
+   - `PLAYER1_NAME`
+   - `PLAYER2_NAME`
+   - `PLAYER3_NAME`
+   - Optional: `LOG_LEVEL` (e.g., `INFO` or `DEBUG`)
+
+2. The workflow will generate `tennis_booking/config/.env` from these secrets and run the script headlessly.
+
+3. On failure, the workflow uploads debug artifacts (screenshots, HTML, and logs) to help diagnose issues.
+
 ### Running in Headless Mode (Config-driven)
 
 Set an environment flag in `config/.env` to toggle headless mode without editing code:
