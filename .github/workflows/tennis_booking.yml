@@ -38,23 +38,23 @@ jobs:
         run: |
           mkdir -p tennis_booking/config
           cat > tennis_booking/config/.env << 'EOF'
-          TENNIS_CLUB_URL=${{ secrets.TENNIS_CLUB_URL }}
+          TENNIS_CLUB_URL=https://www.burnabytennis.ca/
           USERNAME=${{ secrets.USERNAME }}
           PASSWORD=${{ secrets.PASSWORD }}
 
-          PREFERRED_COURTS=${{ secrets.PREFERRED_COURTS }}
-          PREFERRED_TIME=${{ secrets.PREFERRED_TIME }}
-          BOOKING_DAYS_AHEAD=${{ secrets.BOOKING_DAYS_AHEAD }}
-          DURATION_MINUTES=${{ secrets.DURATION_MINUTES }}
+          PREFERRED_COURTS=3,4,5,2
+          PREFERRED_TIME=21:00
+          BOOKING_DAYS_AHEAD=7
+          DURATION_MINUTES=120
 
-          PLAYER1_NAME=${{ secrets.PLAYER1_NAME }}
-          PLAYER2_NAME=${{ secrets.PLAYER2_NAME }}
-          PLAYER3_NAME=${{ secrets.PLAYER3_NAME }}
+          PLAYER1_NAME=Ian Zhu
+          PLAYER2_NAME=Will Yang
+          PLAYER3_NAME=Neil Chen
 
           # Force headless on CI
           HEADLESS=true
           # Optional log level
-          LOG_LEVEL=${{ secrets.LOG_LEVEL }}
+          LOG_LEVEL=info
           EOF
 
       - name: Run booking script (headless)
