@@ -49,6 +49,8 @@ class TennisCourtBooking:
         # Control variables
         self._stop_scrolling = False
         self._logged_in_flag = False  # Track login state
+        self._terminal_outcome = None  # 'success' or 'alert'
+        self._terminal_message = None
 
         # Respect LOG_LEVEL from env if provided (e.g., DEBUG, INFO)
         log_level = os.getenv('LOG_LEVEL', '').upper().strip()
@@ -720,6 +722,13 @@ class TennisCourtBooking:
                             if strategy_func(court_number, time_label):
                                 logger.info(f"Successfully booked court using strategy: {strategy_name}")
                                 return True
+                            # If _confirm_booking() set a terminal outcome, stop immediately
+                            if self._terminal_outcome == 'alert':
+                                logger.error(f"Stopping after booking alert: {self._terminal_message}")
+                                return False
+                            if self._terminal_outcome == 'success':
+                                logger.info("Stopping: terminal success state reached.")
+                                return True
                         except Exception as e:
                             logger.debug(f"Strategy {strategy_name} failed: {str(e)}")
                             try:
@@ -727,9 +736,25 @@ class TennisCourtBooking:
                             except Exception:
                                 pass
 
+                    # If we have an alert or success state after trying strategies for this court, stop
+                    if self._terminal_outcome == 'alert':
+                        logger.error(f"Terminating after alert: {self._terminal_message}")
+                        return False
+                    if self._terminal_outcome == 'success':
+                        logger.info("Terminating after success state.")
+                        return True
+
                     logger.info(f"Could not book Court {court_number} at {time_label}; trying next preferred court")
 
                 # If we get here in this attempt without success
+                # If a terminal outcome was set, don't retry
+                if self._terminal_outcome == 'alert':
+                    logger.error(f"Not retrying due to alert: {self._terminal_message}")
+                    return False
+                if self._terminal_outcome == 'success':
+                    logger.info("Not retrying due to success state.")
+                    return True
+
                 if attempt < max_retries:
                     logger.info(f"Retrying... (attempt {attempt + 1}/{max_retries})")
                     time.sleep(retry_delay)
@@ -1416,6 +1441,60 @@ class TennisCourtBooking:
                     raise
             
             logger.info("Clicked confirm button, waiting for booking to complete...")
+            # User-requested verification: wait 2 seconds, then check if Book button still exists
+            time.sleep(2)
+
+            try:
+                dialog_container = None
+                try:
+                    dialog_container = self.driver.find_element(By.XPATH, "//div[@role='dialog' or contains(@class,'Dialog') or contains(@class,'booking-dialog')]")
+                except Exception:
+                    dialog_container = None
+
+                # Reuse the same selectors to look for a visible Book button
+                still_present = False
+                for selector in confirm_selectors:
+                    try:
+                        elems = []
+                        if selector.strip().startswith("//"):
+                            elems = (dialog_container or self.driver).find_elements(By.XPATH, selector)
+                        else:
+                            elems = (dialog_container or self.driver).find_elements(By.CSS_SELECTOR, selector)
+                        for e in elems:
+                            if e.is_displayed() and e.is_enabled():
+                                still_present = True
+                                break
+                        if still_present:
+                            break
+                    except Exception:
+                        continue
+
+                if not still_present:
+                    logger.info("Book button no longer present after 2s; assuming booking success.")
+                    self._terminal_outcome = 'success'
+                    self._terminal_message = 'Booking completed (Book button disappeared)'
+                    self._save_debug("booking_confirmed")
+                    return True
+
+                # If still present, attempt to read any alert message and end
+                try:
+                    alerts = self.driver.find_elements(By.CSS_SELECTOR, ".MuiAlert-message, [role='alert'] .MuiAlert-message, .MuiAlert-root .MuiAlert-message")
+                    for a in alerts:
+                        try:
+                            if a.is_displayed():
+                                msg = a.text.strip()
+                                if msg:
+                                    logger.error(f"Booking alert: {msg}")
+                                    self._terminal_outcome = 'alert'
+                                    self._terminal_message = msg
+                                    self._save_debug("booking_alert")
+                                    return False
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
+            except Exception:
+                pass
             
             # Wait for success message or redirect
             success = False
@@ -1447,6 +1526,9 @@ class TennisCourtBooking:
                 # Save final confirmation screenshot
                 self._save_debug("booking_confirmed")
                 
+                if success:
+                    self._terminal_outcome = 'success'
+                    self._terminal_message = 'Booking confirmed via success indicator/URL'
                 return success
                 
             except Exception as e:
