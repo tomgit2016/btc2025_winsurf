@@ -20,11 +20,11 @@ class SNSNotifier:
         
         if not self.enabled:
             logger.warning("SMS notifications disabled - missing required environment variables")
-            logger.debug(f"AWS_ACCESS_KEY_ID: {'SET' if self.aws_access_key_id else 'NOT SET'}")
-            logger.debug(f"AWS_SECRET_ACCESS_KEY: {'SET' if self.aws_secret_access_key else 'NOT SET'}")
-            logger.debug(f"AWS_REGION: {self.aws_region}")
-            logger.debug(f"SMS_PHONE_NUMBER: {'SET' if self.phone_number else 'NOT SET'}")
-            logger.debug(f"ENABLE_SMS_NOTIFICATIONS: {os.getenv('ENABLE_SMS_NOTIFICATIONS', 'true')}")
+            logger.info(f"AWS_ACCESS_KEY_ID: {'SET' if self.aws_access_key_id else 'NOT SET'}")
+            logger.info(f"AWS_SECRET_ACCESS_KEY: {'SET' if self.aws_secret_access_key else 'NOT SET'}")
+            logger.info(f"AWS_REGION: {self.aws_region}")
+            logger.info(f"SMS_PHONE_NUMBER: {'SET' if self.phone_number else 'NOT SET'}")
+            logger.info(f"ENABLE_SMS_NOTIFICATIONS: {os.getenv('ENABLE_SMS_NOTIFICATIONS', 'true')}")
             return
             
         try:
