@@ -51,9 +51,15 @@ jobs:
           PLAYER2_NAME=Will Yang
           PLAYER3_NAME=Neil Chen
 
+          # AWS SNS Configuration
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          SMS_PHONE_NUMBER=${{ secrets.SMS_PHONE_NUMBER }}
+          ENABLE_SMS_NOTIFICATIONS=${{ secrets.ENABLE_SMS_NOTIFICATIONS || 'true' }}
+
           # Force headless on CI
           HEADLESS=true
-          # Optional log level
           LOG_LEVEL=info
           EOF
 

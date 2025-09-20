@@ -1,0 +1,85 @@
+import os
+import boto3
+import logging
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+class SNSNotifier:
+    def __init__(self):
+        self.aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+        self.aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+        self.aws_region = os.getenv('AWS_REGION', 'us-west-2')
+        self.phone_number = os.getenv('SMS_PHONE_NUMBER')
+        self.enabled = all([
+            os.getenv('ENABLE_SMS_NOTIFICATIONS', 'true').lower() == 'true',
+            self.aws_access_key_id,
+            self.aws_secret_access_key,
+            self.phone_number
+        ])
+        
+        if not self.enabled:
+            logger.warning("SMS notifications disabled - missing required environment variables")
+            return
+            
+        try:
+            self.client = boto3.client(
+                'sns',
+                region_name=self.aws_region,
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key
+            )
+            logger.info("SMS notifier initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize SNS client: {e}")
+            self.enabled = False
+    
+    def send_sms(self, message: str, subject: str = "Tennis Booking Update") -> bool:
+        """Send an SMS notification"""
+        if not self.enabled:
+            logger.warning("SMS notifications are disabled")
+            return False
+            
+        try:
+            response = self.client.publish(
+                PhoneNumber=self.phone_number,
+                Message=message,
+                Subject=subject[:100],  # SNS subject is limited to 100 chars
+                MessageAttributes={
+                    'AWS.SNS.SMS.SenderID': {
+                        'DataType': 'String',
+                        'StringValue': 'TennisBot'
+                    },
+                    'AWS.SNS.SMS.SMSType': {
+                        'DataType': 'String',
+                        'StringValue': 'Transactional'  # Or 'Promotional' for non-critical messages
+                    }
+                }
+            )
+            logger.info(f"SMS sent successfully: {response['MessageId']}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send SMS: {e}")
+            return False
+
+# Global instance
+notifier = SNSNotifier()
+
+def send_booking_notification(success: bool, message: str):
+    """Helper function to send booking notification"""
+    if not notifier.enabled:
+        logger.warning("SMS notifications are disabled, not sending notification")
+        return False
+        
+    status = "✅ SUCCESS" if success else "❌ FAILED"
+    sms_message = f"Tennis Booking {status}\n{message}"
+    
+    return notifier.send_sms(
+        message=sms_message,
+        subject=f"Tennis Booking {status}"
+    )
+
+def send_sms_notification(success: bool, message: str):
+    """Alias for send_booking_notification for backwards compatibility"""
+    logger.info(f"Sending SMS notification: success={success}, message={message}")
+    return send_booking_notification(success, message)
