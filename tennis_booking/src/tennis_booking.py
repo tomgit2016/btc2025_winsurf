@@ -488,7 +488,9 @@ class TennisCourtBooking:
             # First, click "To Dashboard" if visible (sometimes login lands elsewhere)
             try:
                 dashboard_btn = WebDriverWait(self.driver, 5).until(
-                    EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')] | //button[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')]")
+                    EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')] | //button[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')]"))
+                    # AI made the wrong correction
+                    # EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')] | //button[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')]")
                 )
                 self.driver.execute_script("arguments[0].click();", dashboard_btn)
                 time.sleep(2)
