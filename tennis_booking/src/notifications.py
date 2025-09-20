@@ -2,11 +2,13 @@ import os
 import boto3
 import logging
 from typing import Optional
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
 class SNSNotifier:
     def __init__(self):
+        load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'config', '.env'))
         self.aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
         self.aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
         self.aws_region = os.getenv('AWS_REGION', 'us-west-2')
