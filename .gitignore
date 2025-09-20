@@ -35,3 +35,6 @@ tennis_booking/debug/
 .vscode/
 .idea/
 *.swp
+
+# Photos
+.png
