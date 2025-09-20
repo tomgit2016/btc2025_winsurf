@@ -726,6 +726,7 @@ class TennisCourtBooking:
                             # If _confirm_booking() set a terminal outcome, stop immediately
                             if self._terminal_outcome == 'alert':
                                 logger.error(f"Stopping after booking alert: {self._terminal_message}")
+                                send_booking_notification(False, f"Stopping after booking alert: {self._terminal_message}")
                                 return False
                             if self._terminal_outcome == 'success':
                                 logger.info("Stopping: terminal success state reached.")
@@ -1600,7 +1601,6 @@ def main():
         send_booking_notification(True, "Booking successfully")
     else:
         logger.error("Failed to complete the booking process.")
-        send_booking_notification(False, "Booking failed")
 
 if __name__ == "__main__":
     main()
