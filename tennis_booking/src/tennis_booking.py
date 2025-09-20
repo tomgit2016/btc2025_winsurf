@@ -528,7 +528,7 @@ class TennisCourtBooking:
             # Wait for a heading or calendar/grid to confirm page
             try:
                 WebDriverWait(self.driver, 8).until(
-                    EC.presence_of_element_located((By.XPATH, "//h1[contains(translate(., 'COURT BOOKINGS', 'court bookings'), 'court bookings')] | //div[contains(@class, 'booking-calendar')] | //div[contains(@class, 'booking-grid') or contains(@class,'grid')]")
+                    EC.presence_of_element_located((By.XPATH, "//h1[contains(translate(., 'COURT BOOKINGS', 'court bookings'), 'court bookings')] | //div[contains(@class, 'booking-calendar')] | //div[contains(@class, 'booking-grid') or contains(@class,'grid')]"))
                 )
             except TimeoutException:
                 # Not strictly necessary; proceed with next steps but we saved debug on failure
