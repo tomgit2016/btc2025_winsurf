@@ -51,14 +51,7 @@ jobs:
           PLAYER2_NAME=Will Yang
           PLAYER3_NAME=Neil Chen
 
-          # AWS SNS Configuration
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
-          SMS_PHONE_NUMBER=${{ secrets.SMS_PHONE_NUMBER }}
-          ENABLE_SMS_NOTIFICATIONS=${{ secrets.ENABLE_SMS_NOTIFICATIONS || 'true' }}
-
-          # Force headless on CI
+          # Application settings
           HEADLESS=true
           LOG_LEVEL=info
           EOF
@@ -73,9 +66,22 @@ jobs:
 
       - name: Run booking script (headless)
         working-directory: tennis_booking
+        env:
+          # Load all environment variables from .env file first
+          ENV_FILE: ${{ github.workspace }}/tennis_booking/config/.env
+          # AWS Configuration
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          SMS_PHONE_NUMBER: ${{ secrets.SMS_PHONE_NUMBER }}
+          ENABLE_SMS_NOTIFICATIONS: ${{ secrets.ENABLE_SMS_NOTIFICATIONS || 'true' }}
+          # Application settings
+          TZ: America/Los_Angeles
+          HEADLESS: true
+          LOG_LEVEL: info
         run: |
           python -c "import os; print(f'Current working directory: {os.getcwd()}')"
-          python -c "import os; print(f'Environment variables: {os.environ.keys()}')"
+          python -c "import os; print(f'Environment variables: {os.environ.keys()}')
           python src/tennis_booking.py
 
       - name: Upload debug artifacts on failure
