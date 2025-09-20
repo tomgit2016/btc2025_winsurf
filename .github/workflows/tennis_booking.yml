@@ -1,3 +1,4 @@
+
 name: Tennis Booking Automation
 
 on:
@@ -51,44 +52,21 @@ jobs:
           PLAYER2_NAME=Will Yang
           PLAYER3_NAME=Neil Chen
 
-          # Application settings
+          # AWS SNS Configuration
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}
+          SMS_PHONE_NUMBER=${{ secrets.SMS_PHONE_NUMBER }}
+          ENABLE_SMS_NOTIFICATIONS=${{ secrets.ENABLE_SMS_NOTIFICATIONS || 'true' }}
+
+          # Force headless on CI
           HEADLESS=true
           LOG_LEVEL=info
           EOF
 
-      - name: Verify .env file exists
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -la tennis_booking/config/
-          echo "=== .env contents ==="
-          cat tennis_booking/config/.env
-          echo "====================="
-
       - name: Run booking script (headless)
-        working-directory: tennis_booking
         env:
-          # Load all environment variables from .env file first
-          ENV_FILE: ${{ github.workspace }}/tennis_booking/config/.env
-          # AWS Configuration
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
-          SMS_PHONE_NUMBER: ${{ secrets.SMS_PHONE_NUMBER }}
-          ENABLE_SMS_NOTIFICATIONS: ${{ secrets.ENABLE_SMS_NOTIFICATIONS || 'true' }}
-          # Application settings
+          # Some sites may require locale/timezone awareness
           TZ: America/Los_Angeles
-          HEADLESS: true
-          LOG_LEVEL: info
         run: |
-          python src/tennis_booking.py
-
-      - name: Upload debug artifacts on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tennis-booking-debug
-          path: |
-            tennis_booking/debug/**/*.png
-            tennis_booking/debug/**/*.html
-            tennis_booking/tennis_booking.log
-          if-no-files-found: ignore
+          python tennis_booking/src/tennis_booking.py
