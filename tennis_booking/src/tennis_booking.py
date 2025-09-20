@@ -25,26 +25,8 @@ logger = logging.getLogger(__name__)
 
 class TennisCourtBooking:
     def __init__(self):
-        # Try multiple possible locations for the .env file
-        env_paths = [
-            os.path.join(os.path.dirname(__file__), '..', 'config', '.env'),  # Local development
-            os.path.join(os.path.dirname(__file__), '.env'),  # Alternative local path
-            os.path.join(os.getcwd(), '.env'),  # Current working directory
-            os.path.join(os.getcwd(), 'config', '.env'),  # CWD/config/.env
-            os.path.join(os.getcwd(), 'tennis_booking', 'config', '.env')  # GitHub Actions path
-        ]
-        
-        # Load the first .env file that exists
-        env_loaded = False
-        for env_path in env_paths:
-            if os.path.exists(env_path):
-                logger.info(f"Loading .env from: {env_path}")
-                load_dotenv(env_path)
-                env_loaded = True
-                break
-                
-        if not env_loaded:
-            logger.warning("No .env file found in any expected location. Using environment variables only.")
+        # Load environment variables
+        load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'config', '.env'))
         
         self.base_url = os.getenv('TENNIS_CLUB_URL')
         self.username = os.getenv('USERNAME')
@@ -487,15 +469,11 @@ class TennisCourtBooking:
                 self._save_debug(f"login_error_attempt_{attempt}")
                 if attempt == max_attempts:
                     logger.error("Max login attempts reached")
-                    self._terminal_outcome = 'failure'
-                    self._terminal_message = f"Login failed after {max_attempts} attempts"
                     raise
                 time.sleep(2)  # Wait before retry
         
         logger.error("All login attempts failed")
         self._save_debug("login_failure")
-        self._terminal_outcome = 'failure'
-        self._terminal_message = "All login attempts failed"
         return False
     
     def navigate_to_booking_page(self):
@@ -507,8 +485,6 @@ class TennisCourtBooking:
             try:
                 dashboard_btn = WebDriverWait(self.driver, 5).until(
                     EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')] | //button[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')]"))
-                    # AI made the wrong correction
-                    # EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')] | //button[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')]")
                 )
                 self.driver.execute_script("arguments[0].click();", dashboard_btn)
                 time.sleep(2)
@@ -555,8 +531,6 @@ class TennisCourtBooking:
         except Exception as e:
             logger.error(f"Failed to navigate to booking page: {str(e)}")
             self._save_debug("navigate_booking_failure")
-            self._terminal_outcome = 'failure'
-            self._terminal_message = f"Failed to navigate to booking page: {str(e)}"
             return False
     
     def select_preferred_date(self):
@@ -661,8 +635,6 @@ class TennisCourtBooking:
         except Exception as e:
             logger.error(f"Failed to select date: {str(e)}")
             self._save_debug("select_date_failure")
-            self._terminal_outcome = 'failure'
-            self._terminal_message = f"Failed to select booking date: {str(e)}"
             return False
 
     def find_and_book_court(self):
@@ -921,66 +893,24 @@ class TennisCourtBooking:
             self._save_debug("booking_form_error")
             return False
             
-    def _confirm_booking(self):
-        """Handle the booking confirmation dialog with improved error handling and logging."""
+    def _time_label_variants(self, time_24h: str, pretty: str) -> list:
+        """Return a list of common textual variants for a time label (e.g., '21:00' -> ['9:00 pm','9 pm','9pm','21:00','21'])."""
         try:
-            # Wait for the confirmation button
-            confirm_btn = WebDriverWait(self.driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Confirm') or contains(., 'Book Now')]"))
-            )
-            confirm_btn.click()
-            logger.info("Clicked confirm button, waiting for booking to complete...")
-            
-            # Wait for success or failure
-            try:
-                # Check for success message
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((
-                        By.XPATH,
-                        "//*[contains(., 'success') or contains(., 'confirmed') or contains(., 'booked')]"
-                    ))
-                )
-                message = "Booking confirmed successfully!"
-                logger.info(message)
-                self._terminal_outcome = 'success'
-                self._terminal_message = message
-                send_booking_notification(True, message)
-                send_sms_notification(True, message)
-                return True
-                
-            except Exception as e:
-                # Check for error messages
-                try:
-                    error_elem = self.driver.find_element(
-                        By.XPATH,
-                        "//*[contains(@class, 'error') or contains(@class, 'alert')]"
-                    )
-                    error_msg = error_elem.text.strip()
-                    logger.error(f"Booking alert: {error_msg}")
-                    self._save_debug("booking_alert")
-                    
-                    # Send failure notification with error details
-                    send_booking_notification(False, f"Failed: {error_msg}")
-                    send_sms_notification(False, f"Failed: {error_msg}")
-                    self._terminal_outcome = 'alert'
-                    self._terminal_message = error_msg
-                    
-                except Exception as inner_e:
-                    logger.error("Booking failed but no error message found")
-                    send_booking_notification(False, "Booking failed - unknown error")
-                    send_sms_notification(False, "Booking failed - unknown error")
-                    self._terminal_outcome = 'alert'
-                    self._terminal_message = "Booking failed - unknown error"
-                return False
-                
-        except Exception as e:
-            error_msg = f"Error in booking confirmation: {str(e)}"
-            logger.error(error_msg)
-            send_booking_notification(False, error_msg)
-            send_sms_notification(False, error_msg)
-            self._terminal_outcome = 'alert'
-            self._terminal_message = error_msg
-            return False
+            dt = datetime.strptime(time_24h, '%H:%M')
+            h24 = int(dt.strftime('%H'))
+            m = int(dt.strftime('%M'))
+            ampm = 'pm' if h24 >= 12 else 'am'
+            h12 = h24 % 12 or 12
+            variants = set()
+            variants.add(pretty)                  # e.g., '9:00 pm'
+            variants.add(f"{h12}:{m:02d}{ampm}")  # '9:00pm'
+            variants.add(f"{h12} {ampm}")         # '9 pm'
+            variants.add(f"{h12}{ampm}")          # '9pm'
+            variants.add(time_24h)                # '21:00'
+            variants.add(f"{h24}")               # '21'
+            return list(variants)
+        except Exception:
+            return [pretty, time_24h]
 
     def _button_in_court_column(self, button_el, court_number: int) -> bool:
         """Try to determine if the given button is within the desired court column by inspecting ancestor text or headers."""
@@ -1071,48 +1001,7 @@ class TennisCourtBooking:
             ampm = 'am' if hour < 12 else 'pm'
             hour12 = hour % 12 or 12
             return f"{hour12}:{minute:02d} {ampm}"
-
-    def _time_label_variants(self, time_24h: str, formatted_label: str) -> list:
-        """Generate variants of the time label to increase chances of matching website elements.
-        
-        Args:
-            time_24h: Time in 24-hour format (e.g., "18:00")
-            formatted_label: Already formatted time (e.g., "6:00 pm")
-            
-        Returns:
-            List of time label variants like ["6:00 pm", "6:00PM", "6:00", "18:00"]
-        """
-        variants = []
-        
-        # Add the primary formatted label
-        variants.append(formatted_label)
-        
-        # Add uppercase and no-space variants
-        variants.append(formatted_label.upper())
-        variants.append(formatted_label.replace(" ", ""))
-        variants.append(formatted_label.upper().replace(" ", ""))
-        
-        # Add variants without AM/PM
-        hour, minute = map(int, time_24h.split(':'))
-        hour12 = hour % 12 or 12
-        variants.append(f"{hour12}:{minute:02d}")
-        
-        # Add 24h format
-        variants.append(time_24h)
-        
-        # Add no-zero variants (6:00 -> 6:0)
-        if minute == 0:
-            variants.append(f"{hour12}:0")
-            variants.append(f"{hour12}")
-        
-        # Remove duplicates while preserving order
-        unique_variants = []
-        for v in variants:
-            if v not in unique_variants:
-                unique_variants.append(v)
-                
-        return unique_variants
-
+ 
     def _nudge_scroll(self):
         """Perform a small scroll up and down to trigger lazy loading or grid render."""
         try:
@@ -1686,30 +1575,18 @@ class TennisCourtBooking:
         """Run the booking process."""
         try:
             if not self.login():
-                self._terminal_outcome = 'failure'
-                self._terminal_message = 'Login failed'
                 return False
                 
             if not self.navigate_to_booking_page():
-                self._terminal_outcome = 'failure'
-                self._terminal_message = 'Failed to navigate to booking page'
                 return False
                 
             if not self.select_preferred_date():
-                self._terminal_outcome = 'failure'
-                self._terminal_message = 'Failed to select preferred date'
                 return False
                 
-            success = self.find_and_book_court()
-            if not success:
-                self._terminal_outcome = 'failure'
-                self._terminal_message = 'Failed to find and book court'
-            return success
+            return self.find_and_book_court()
             
         except Exception as e:
             logger.error(f"An error occurred: {str(e)}")
-            self._terminal_outcome = 'failure'
-            self._terminal_message = f"Unexpected error: {str(e)}"
             return False
         finally:
             # Keep the browser open for debugging
@@ -1718,24 +1595,12 @@ class TennisCourtBooking:
 
 def main():
     booking = TennisCourtBooking()
-    success = booking.run()
-    
-    # Get booking result details
-    outcome = getattr(booking, '_terminal_outcome', None)
-    message = getattr(booking, '_terminal_message', None)
-    
-    if success:
+    if booking.run():
         logger.info("Tennis court booking completed successfully!")
-        if outcome == 'success':
-            send_booking_notification(True, message or "Tennis court booked successfully")
-        else:
-            send_booking_notification(True, message or "Booking completed")
+        send_booking_notification(True, "Booking successfully")
     else:
         logger.error("Failed to complete the booking process.")
-        send_booking_notification(False, message or "Failed to book tennis court")
+        send_booking_notification(False, "Booking failed")
 
-    # Cleanup
-    try:
-        booking.driver.quit()
-    except:
-        pass
+if __name__ == "__main__":
+    main()
