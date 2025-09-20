@@ -20,6 +20,11 @@ class SNSNotifier:
         
         if not self.enabled:
             logger.warning("SMS notifications disabled - missing required environment variables")
+            logger.debug(f"AWS_ACCESS_KEY_ID: {'SET' if self.aws_access_key_id else 'NOT SET'}")
+            logger.debug(f"AWS_SECRET_ACCESS_KEY: {'SET' if self.aws_secret_access_key else 'NOT SET'}")
+            logger.debug(f"AWS_REGION: {self.aws_region}")
+            logger.debug(f"SMS_PHONE_NUMBER: {'SET' if self.phone_number else 'NOT SET'}")
+            logger.debug(f"ENABLE_SMS_NOTIFICATIONS: {os.getenv('ENABLE_SMS_NOTIFICATIONS', 'true')}")
             return
             
         try:
@@ -41,6 +46,7 @@ class SNSNotifier:
             return False
             
         try:
+            logger.info(f"Attempting to send SMS to {self.phone_number}")
             response = self.client.publish(
                 PhoneNumber=self.phone_number,
                 Message=message,
@@ -60,6 +66,9 @@ class SNSNotifier:
             return True
         except Exception as e:
             logger.error(f"Failed to send SMS: {e}")
+            logger.error(f"Error type: {type(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
 
 # Global instance

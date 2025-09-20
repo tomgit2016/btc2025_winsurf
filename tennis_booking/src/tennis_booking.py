@@ -469,11 +469,15 @@ class TennisCourtBooking:
                 self._save_debug(f"login_error_attempt_{attempt}")
                 if attempt == max_attempts:
                     logger.error("Max login attempts reached")
+                    self._terminal_outcome = 'failure'
+                    self._terminal_message = f"Login failed after {max_attempts} attempts"
                     raise
                 time.sleep(2)  # Wait before retry
         
         logger.error("All login attempts failed")
         self._save_debug("login_failure")
+        self._terminal_outcome = 'failure'
+        self._terminal_message = "All login attempts failed"
         return False
     
     def navigate_to_booking_page(self):
@@ -484,7 +488,7 @@ class TennisCourtBooking:
             # First, click "To Dashboard" if visible (sometimes login lands elsewhere)
             try:
                 dashboard_btn = WebDriverWait(self.driver, 5).until(
-                    EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')] | //button[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')]"))
+                    EC.element_to_be_clickable((By.XPATH, "//a[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')] | //button[normalize-space()='To Dashboard' or contains(normalize-space(.), 'To Dashboard')]")
                 )
                 self.driver.execute_script("arguments[0].click();", dashboard_btn)
                 time.sleep(2)
@@ -522,7 +526,7 @@ class TennisCourtBooking:
             # Wait for a heading or calendar/grid to confirm page
             try:
                 WebDriverWait(self.driver, 8).until(
-                    EC.presence_of_element_located((By.XPATH, "//h1[contains(translate(., 'COURT BOOKINGS', 'court bookings'), 'court bookings')] | //div[contains(@class, 'booking-calendar')] | //div[contains(@class, 'booking-grid') or contains(@class,'grid')]"))
+                    EC.presence_of_element_located((By.XPATH, "//h1[contains(translate(., 'COURT BOOKINGS', 'court bookings'), 'court bookings')] | //div[contains(@class, 'booking-calendar')] | //div[contains(@class, 'booking-grid') or contains(@class,'grid')]")
                 )
             except TimeoutException:
                 # Not strictly necessary; proceed with next steps but we saved debug on failure
@@ -531,6 +535,8 @@ class TennisCourtBooking:
         except Exception as e:
             logger.error(f"Failed to navigate to booking page: {str(e)}")
             self._save_debug("navigate_booking_failure")
+            self._terminal_outcome = 'failure'
+            self._terminal_message = f"Failed to navigate to booking page: {str(e)}"
             return False
     
     def select_preferred_date(self):
@@ -635,6 +641,8 @@ class TennisCourtBooking:
         except Exception as e:
             logger.error(f"Failed to select date: {str(e)}")
             self._save_debug("select_date_failure")
+            self._terminal_outcome = 'failure'
+            self._terminal_message = f"Failed to select booking date: {str(e)}"
             return False
 
     def find_and_book_court(self):
@@ -1658,18 +1666,30 @@ class TennisCourtBooking:
         """Run the booking process."""
         try:
             if not self.login():
+                self._terminal_outcome = 'failure'
+                self._terminal_message = 'Login failed'
                 return False
                 
             if not self.navigate_to_booking_page():
+                self._terminal_outcome = 'failure'
+                self._terminal_message = 'Failed to navigate to booking page'
                 return False
                 
             if not self.select_preferred_date():
+                self._terminal_outcome = 'failure'
+                self._terminal_message = 'Failed to select preferred date'
                 return False
                 
-            return self.find_and_book_court()
+            success = self.find_and_book_court()
+            if not success:
+                self._terminal_outcome = 'failure'
+                self._terminal_message = 'Failed to find and book court'
+            return success
             
         except Exception as e:
             logger.error(f"An error occurred: {str(e)}")
+            self._terminal_outcome = 'failure'
+            self._terminal_message = f"Unexpected error: {str(e)}"
             return False
         finally:
             # Keep the browser open for debugging
@@ -1678,10 +1698,24 @@ class TennisCourtBooking:
 
 def main():
     booking = TennisCourtBooking()
-    if booking.run():
+    success = booking.run()
+    
+    # Get booking result details
+    outcome = getattr(booking, '_terminal_outcome', None)
+    message = getattr(booking, '_terminal_message', None)
+    
+    if success:
         logger.info("Tennis court booking completed successfully!")
+        if outcome == 'success':
+            send_booking_notification(True, message or "Tennis court booked successfully")
+        else:
+            send_booking_notification(True, message or "Booking completed")
     else:
         logger.error("Failed to complete the booking process.")
+        send_booking_notification(False, message or "Failed to book tennis court")
 
-if __name__ == "__main__":
-    main()
+    # Cleanup
+    try:
+        booking.driver.quit()
+    except:
+        pass

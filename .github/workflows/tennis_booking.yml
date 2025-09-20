@@ -67,7 +67,16 @@ jobs:
         env:
           # Some sites may require locale/timezone awareness
           TZ: America/Los_Angeles
+          # AWS debugging
+          AWS_REGION: us-east-1
         run: |
+          echo "Checking AWS configuration..."
+          python -c "import boto3; print('boto3 version:', boto3.__version__); print('AWS region:', boto3.Session().region_name if boto3.Session().region_name else 'Not set')"
+          echo "Environment variables available:"
+          echo "AWS_ACCESS_KEY_ID: $(if [ -n \"$AWS_ACCESS_KEY_ID\" ]; then echo 'SET'; else echo 'NOT SET'; fi)"
+          echo "AWS_SECRET_ACCESS_KEY: $(if [ -n \"$AWS_SECRET_ACCESS_KEY\" ]; then echo 'SET'; else echo 'NOT SET'; fi)"
+          echo "SMS_PHONE_NUMBER: $(if [ -n \"$SMS_PHONE_NUMBER\" ]; then echo 'SET'; else echo 'NOT SET'; fi)"
+          echo "ENABLE_SMS_NOTIFICATIONS: \"$ENABLE_SMS_NOTIFICATIONS\""
           python tennis_booking/src/tennis_booking.py
 
       - name: Upload debug artifacts on failure
