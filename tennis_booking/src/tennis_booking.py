@@ -25,8 +25,26 @@ logger = logging.getLogger(__name__)
 
 class TennisCourtBooking:
     def __init__(self):
-        # Load environment variables
-        load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'config', '.env'))
+        # Try multiple possible locations for the .env file
+        env_paths = [
+            os.path.join(os.path.dirname(__file__), '..', 'config', '.env'),  # Local development
+            os.path.join(os.path.dirname(__file__), '.env'),  # Alternative local path
+            os.path.join(os.getcwd(), '.env'),  # Current working directory
+            os.path.join(os.getcwd(), 'config', '.env'),  # CWD/config/.env
+            os.path.join(os.getcwd(), 'tennis_booking', 'config', '.env')  # GitHub Actions path
+        ]
+        
+        # Load the first .env file that exists
+        env_loaded = False
+        for env_path in env_paths:
+            if os.path.exists(env_path):
+                logger.info(f"Loading .env from: {env_path}")
+                load_dotenv(env_path)
+                env_loaded = True
+                break
+                
+        if not env_loaded:
+            logger.warning("No .env file found in any expected location. Using environment variables only.")
         
         self.base_url = os.getenv('TENNIS_CLUB_URL')
         self.username = os.getenv('USERNAME')

@@ -63,14 +63,25 @@ jobs:
           LOG_LEVEL=info
           EOF
 
+      - name: Verify .env file exists
+        run: |
+          echo "Current directory: $(pwd)"
+          ls -la tennis_booking/config/
+          echo "=== .env contents ==="
+          cat tennis_booking/config/.env
+          echo "====================="
+
       - name: Run booking script (headless)
         env:
           # Some sites may require locale/timezone awareness
           TZ: America/Los_Angeles
           # AWS debugging
           AWS_REGION: us-east-1
+        working-directory: tennis_booking
         run: |
-          python tennis_booking/src/tennis_booking.py
+          python -c "import os; print(f'Current working directory: {os.getcwd()}')"
+          python -c "import os; print(f'Environment variables: {os.environ.keys()}')"
+          python src/tennis_booking.py
 
       - name: Upload debug artifacts on failure
         if: failure()
