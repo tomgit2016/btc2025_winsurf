@@ -81,7 +81,7 @@ jobs:
           LOG_LEVEL: info
         run: |
           python -c "import os; print(f'Current working directory: {os.getcwd()}')"
-          python -c "import os; print(f'Environment variables: {os.environ.keys()}')
+          python -c "import os; print(f'Environment variables: {list(os.environ.keys())}')"
           python src/tennis_booking.py
 
       - name: Upload debug artifacts on failure
