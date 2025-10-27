@@ -1234,7 +1234,8 @@ class TennisCourtBooking:
         - Repeat until all additional players entered
         """
         try:
-            names = [n for n in [self.player1, self.player2, self.player3] if n]
+            # names = [n for n in [self.player1, self.player2, self.player3] if n]
+            names = [n for n in [self.player1] if n]
             if not names:
                 logger.info("No additional player names provided in config")
                 return False
@@ -1329,6 +1330,7 @@ class TennisCourtBooking:
             else:
                 logger.warning("Could not locate Player 2 input")
 
+'''
             # For remaining names, click Add Player then type
             for name in names[1:]:
                 # Click + Add Player
@@ -1381,7 +1383,7 @@ class TennisCourtBooking:
                     time.sleep(1.2)
                 else:
                     logger.warning(f"Could not locate input to fill player '{name}'")
-
+'''
             return True
 
         except Exception as e:
