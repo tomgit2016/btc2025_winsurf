@@ -1232,10 +1232,21 @@ class TennisCourtBooking:
         - Click "+ Add Player" and wait 1s
         - Type next player
         - Repeat until all additional players entered
+        - Only add player1 if the current date is Monday
+        - Add all players (player1, player2, player3) for other days
         """
         try:
-            # names = [n for n in [self.player1, self.player2, self.player3] if n]
-            names = [n for n in [self.player1] if n]
+            # Check if today is Monday (0 = Monday, 6 = Sunday)
+            is_monday = datetime.now().weekday() == 0
+            
+            # Only include player1 if it's Monday, otherwise use all players
+            if is_monday:
+                names = [n for n in [self.player1] if n]
+                logger.info("Today is Monday, will only add player1 to booking")
+            else:
+                names = [n for n in [self.player1, self.player2, self.player3] if n]
+                logger.info(f"Today is not Monday (day {datetime.now().weekday()}), will add all players to booking")
+            
             if not names:
                 logger.info("No additional player names provided in config")
                 return False
@@ -1330,7 +1341,7 @@ class TennisCourtBooking:
             else:
                 logger.warning("Could not locate Player 2 input")
 
-'''
+
             # For remaining names, click Add Player then type
             for name in names[1:]:
                 # Click + Add Player
@@ -1383,7 +1394,7 @@ class TennisCourtBooking:
                     time.sleep(1.2)
                 else:
                     logger.warning(f"Could not locate input to fill player '{name}'")
-'''
+
             return True
 
         except Exception as e:
