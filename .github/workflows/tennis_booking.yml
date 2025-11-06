@@ -4,7 +4,7 @@ name: Tennis Booking Automation
 on:
   schedule:
     # 9:01 PM Pacific Time occurs at 04:01 UTC during Daylight Saving (PDT)
-    - cron: '1 4 * * 2,5'
+    # - cron: '1 4 * * 2,5'
     # 9:01 PM Pacific Standard Time occurs at 05:01 UTC (non-DST)
     - cron: '1 5 * * 2,5'
   workflow_dispatch:
